@@ -5,8 +5,8 @@ import org.springframework.http.HttpStatus;
 public enum ErrorsEnum {
 
     GENERAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error.", 1),
-    TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task was not found", 2),
-    TASK_EXISTS(HttpStatus.NOT_ACCEPTABLE, "Task already found", 3),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User was not found", 2),
+    USER_EXISTS(HttpStatus.NOT_ACCEPTABLE, "User already found", 3),
     TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "Token is missing from request", 4),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "Token is invalid", 5),
     LOGIN_WRONG_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Wrong username or password", 6);

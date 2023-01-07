@@ -1,10 +1,13 @@
 package com.bogdan.todouser.controller;
 
+import com.bogdan.todouser.dto.UserDto;
 import com.bogdan.todouser.entity.UserEntity;
-import com.bogdan.todouser.repository.UserRepository;
+import com.bogdan.todouser.service.UserControlService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,48 +16,49 @@ import java.util.Optional;
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
-
-//    @Autowired
-//    private ItemProxy proxy;
+    private UserControlService userControlService;
 
 
     @GetMapping("/")
-    public List<UserEntity> getUsers() {
+    public ResponseEntity<String> getUsers() {
 
-        return userRepository.findAll();
+        return userControlService.getAllUsers();
     }
 
     @GetMapping("/{id}")
-    public Optional<UserEntity> findById(@PathVariable Long id) {
-        return userRepository.findById(id);
+    public ResponseEntity<String> findById(@PathVariable Long id) {
+        return userControlService.findUserById(id);
+    }
+
+    @GetMapping("/user/{username}")
+    public ResponseEntity<String> findByUsername(@PathVariable String username) {
+
+        return userControlService.findByUsername(username);
     }
 
     @PostMapping("/")
-    public UserEntity createUser(@RequestBody UserEntity userEntity) {
+    public ResponseEntity<String> registerUser(@Valid @RequestBody UserDto userDto) {
 
-
-        return userRepository.save(userEntity);
+        return userControlService.register(userDto);
     }
 
-//    @PostMapping("/tasks/")
-//    public ResponseEntity<String> createTask(@RequestBody Task task) {
-//
-//        return proxy.createTask(task);
-//
-//    }
-//
-//    @GetMapping("/tasks/{id}")
-//    public ResponseEntity<String> getTaskById(@PathVariable Long id) {
-//
-//        return proxy.getTasksById(id);
-//    }
-//
-//    @PutMapping("/tasks/{id}")
-//    public ResponseEntity<String> updateTaskById(@RequestBody Task task, @PathVariable Long id){
-//
-//        return proxy.updateTask(task, id);
-//    }
+    @PostMapping("/login/")
+    public ResponseEntity<String> loginUser(@Valid @RequestBody UserDto userDto) {
 
+        return userControlService.login(userDto);
+    }
+
+    @PutMapping("/")
+    public ResponseEntity<String> updateUser(@RequestBody UserDto userDto, @PathVariable Long id) {
+        userDto.setId(id);
+
+        return userControlService.update(userDto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteUserById(Long id) {
+
+        userControlService.deleteById(id);
+    }
 
 }

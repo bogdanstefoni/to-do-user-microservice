@@ -69,5 +69,9 @@ public class AuthorizationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return StringUtils.equalsAny(path, "/users/login", "/users/");
+    }
 }

@@ -1,13 +1,11 @@
 package com.bogdan.todouser.dto;
 
 
-import java.util.List;
-
 public class TaskDto {
 
     private String title;
 
-    private List<String> taskDescription;
+    private String taskDescription;
 
 
     public String getTitle() {
@@ -18,11 +16,11 @@ public class TaskDto {
         this.title = title;
     }
 
-    public List<String> getTaskDescription() {
+    public String getTaskDescription() {
         return taskDescription;
     }
 
-    public void setTaskDescription(List<String> taskDescription) {
+    public void setTaskDescription(String taskDescription) {
         this.taskDescription = taskDescription;
     }
 
