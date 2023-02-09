@@ -1,10 +1,8 @@
 package com.bogdan.todouser.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 @ConfigurationProperties(prefix = "authorization")
-@Component
 public class AuthorizationProperties {
 
     private Integer hours;

@@ -6,18 +6,26 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "to-do-task", url = "localhost:8000")
+import java.util.List;
+
+//@FeignClient(name = "to-do-task", url = "localhost:8000")
+@FeignClient(name = "to-do-app")
 @Configuration
 public interface TaskProxy {
 
-    @GetMapping("/tasks/{id}")
-    ResponseEntity<String> getTasksById(@PathVariable Long id);
+    @GetMapping("/tasks/{taskName}")
+    ResponseEntity<List<TaskDto>> findTaskByName(@PathVariable String taskName);
 
-    @PostMapping("/tasks/")
-    ResponseEntity<String> createTask(@RequestBody TaskDto taskDto);
+    @PostMapping("/tasks/{userId}/create")
+    ResponseEntity<TaskDto> createTask(@RequestBody TaskDto taskDto, @PathVariable Long userId);
 
-    @PutMapping("/tasks/update/{taskId}")
-    ResponseEntity<String> updateTask(@RequestBody TaskDto taskDto, @PathVariable Long taskId);
+    @PutMapping("/tasks/update/{taskName}")
+    ResponseEntity<TaskDto> updateTask(@RequestBody TaskDto taskDto, @PathVariable String taskName);
 
+    @GetMapping("/tasks/list")
+    ResponseEntity<List<TaskDto>> getAllTasks();
+
+    @GetMapping("/tasks/list/{userId}")
+    List<TaskDto> findTasksByUserId(@PathVariable Long userId);
 
 }

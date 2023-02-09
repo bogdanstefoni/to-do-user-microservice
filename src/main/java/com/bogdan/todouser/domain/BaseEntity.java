@@ -1,4 +1,4 @@
-package com.bogdan.todouser.entity;
+package com.bogdan.todouser.domain;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;

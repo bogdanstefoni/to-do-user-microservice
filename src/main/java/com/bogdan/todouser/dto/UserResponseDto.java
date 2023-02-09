@@ -1,8 +1,12 @@
 package com.bogdan.todouser.dto;
 
+import java.util.List;
+
 public class UserResponseDto {
 
-    private String name;
+
+    private String firstName;
+    private String lastName;
 
     private String email;
 
@@ -12,12 +16,22 @@ public class UserResponseDto {
 
     private String jwtToken;
 
-    public String getName() {
-        return name;
+    private List<TaskDto> tasks;
+
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getEmail() {
@@ -50,5 +64,13 @@ public class UserResponseDto {
 
     public void setJwtToken(String jwtToken) {
         this.jwtToken = jwtToken;
+    }
+
+    public List<TaskDto> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<TaskDto> tasks) {
+        this.tasks = tasks;
     }
 }
