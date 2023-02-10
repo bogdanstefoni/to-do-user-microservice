@@ -11,14 +11,10 @@ import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.springframework.http.HttpStatus.OK;
 
 @Service
 public class TaskServiceImpl implements TaskService {
@@ -34,7 +30,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ResponseEntity<UserResponseDto> findTasksByUserId(long userId) throws UserNotFoundException {
+    public UserResponseDto findTasksByUserId(long userId) throws UserNotFoundException {
         User user = userService.findUserById(userId);
         UserResponseDto userResponseDto = mapToUserResponseDto(user);
         if (user.isNotLocked()) {
@@ -42,39 +38,64 @@ public class TaskServiceImpl implements TaskService {
 
             userResponseDto.setTasks(tasksResponse);
 
-            return new ResponseEntity<>(userResponseDto, OK);
         }
 
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        return userResponseDto;
 
 
     }
 
     @Override
-    public ResponseEntity<UserResponseDto> createTask(TaskDto taskDto, long id) throws UserNotFoundException {
+    public UserResponseDto createTask(TaskDto taskDto, long id) throws UserNotFoundException {
         User user = userService.findUserById(id);
+
+        UserResponseDto responseDto = mapToUserResponseDto(user);
         taskDto.setUserId(id);
         if (user.isNotLocked()) {
 
-            UserResponseDto responseDto = mapToUserResponseDto(user);
+            List<TaskDto> existingTasks = proxy.findTasksByUserId(id);
+
+            existingTasks.forEach(t -> {
+                if (t.getTitle().equals(taskDto.getTitle())) {
+                    throw new RuntimeException("Task " + t.getTitle() + " already exists. Please create a new one");
+                }
+            });
+
+
             List<TaskDto> taskDtos = new ArrayList<>();
             taskDtos.add(taskDto);
             responseDto.setTasks(taskDtos);
 
             proxy.createTask(taskDto, id);
-            logger.info("Task created: {}",responseDto.getTasks());
+            logger.info("Task created: {}", responseDto.getTasks());
 
-            return new ResponseEntity<>(responseDto, OK);
 
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return responseDto;
 
     }
 
     @Override
-    public ResponseEntity<List<TaskDto>> getAllTasks() {
+    public UserResponseDto updateTask(TaskDto taskDto, long id) throws UserNotFoundException {
+        User user = userService.findUserById(id);
 
-        return proxy.getAllTasks();
+        UserResponseDto responseDto = mapToUserResponseDto(user);
+
+        if (user.isNotLocked()) {
+
+            List<TaskDto> taskDtos = proxy.findTasksByUserId(id);
+            taskDtos.forEach(t -> {
+                t.setTitle(taskDto.getTitle());
+                t.setTaskDescription(taskDto.getTaskDescription());
+            });
+
+            responseDto.setTasks(taskDtos);
+
+            proxy.updateTask(taskDto, id);
+
+        }
+
+        return responseDto;
     }
 
     private UserResponseDto mapToUserResponseDto(User user) {

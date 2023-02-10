@@ -14,13 +14,13 @@ import java.util.List;
 public interface TaskProxy {
 
     @GetMapping("/tasks/{taskName}")
-    ResponseEntity<List<TaskDto>> findTaskByName(@PathVariable String taskName);
+    ResponseEntity<TaskDto> findTaskByName(@PathVariable String taskName);
 
     @PostMapping("/tasks/{userId}/create")
     ResponseEntity<TaskDto> createTask(@RequestBody TaskDto taskDto, @PathVariable Long userId);
 
-    @PutMapping("/tasks/update/{taskName}")
-    ResponseEntity<TaskDto> updateTask(@RequestBody TaskDto taskDto, @PathVariable String taskName);
+    @PutMapping("/tasks/{userId}/update")
+    ResponseEntity<TaskDto> updateTask(@RequestBody TaskDto taskDto, @PathVariable Long userId);
 
     @GetMapping("/tasks/list")
     ResponseEntity<List<TaskDto>> getAllTasks();
