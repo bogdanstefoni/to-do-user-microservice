@@ -84,10 +84,11 @@ public class TaskServiceImpl implements TaskService {
         if (user.isNotLocked()) {
 
             List<TaskDto> taskDtos = proxy.findTasksByUserId(id);
-            taskDtos.forEach(t -> {
-                t.setTitle(taskDto.getTitle());
-                t.setTaskDescription(taskDto.getTaskDescription());
-            });
+            taskDtos.stream().filter(t -> t.getTitle().equals(taskDto.getTitle()))
+                            .forEach(t -> {
+                                t.setTitle(taskDto.getTitle());
+                                t.setTaskDescription(taskDto.getTaskDescription());
+                            });
 
             responseDto.setTasks(taskDtos);
 
