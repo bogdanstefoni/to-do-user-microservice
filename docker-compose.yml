@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   to-do-user:
-    image: to-do-user
+    image: justbogdy/to-do-user
     ports:
       - "8100:8100"
     networks:
@@ -14,7 +14,7 @@ services:
       SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://naming-server:8761/eureka"}}}}'
 
   to-do-app:
-    image: to-do-app
+    image: justbogdy/to-do-app
     ports:
       - "8200:8200"
     networks:
@@ -26,7 +26,7 @@ services:
       SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://naming-server:8761/eureka"}}}}'
 
   naming-server:
-    image: naming-server
+    image: justbogdy/naming-server
     ports:
       - "8761:8761"
     networks:
@@ -34,7 +34,7 @@ services:
 
 
   api-gateway:
-    image: api-gateway
+    image: justbogdy/api-gateway
     ports:
       - "8765:8765"
     networks:
