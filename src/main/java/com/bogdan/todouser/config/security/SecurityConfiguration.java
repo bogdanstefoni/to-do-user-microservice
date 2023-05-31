@@ -24,11 +24,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfiguration {
 
-    private AuthorizationFilter authorizationFilter;
-    private AccessDeniedHandler accessDeniedHandler;
-    private AuthenticationEntryPoint authenticationEntryPoint;
-    private UserDetailsService userDetailsService;
-    private BCryptPasswordEncoder encoder;
+    private final AuthorizationFilter authorizationFilter;
+    private final AccessDeniedHandler accessDeniedHandler;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final UserDetailsService userDetailsService;
+    private final BCryptPasswordEncoder encoder;
 
     @Autowired
     public SecurityConfiguration(AuthorizationFilter authorizationFilter,

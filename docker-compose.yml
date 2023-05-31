@@ -1,57 +1,28 @@
-version: '3.7'
+version: '3.8'
 
 services:
-  to-do-user:
-    image: justbogdy/to-do-user
-    ports:
-      - "8100:8100"
-    networks:
-      - to-do-app-network
-    depends_on:
-      - mysqldb
-      - naming-server
-    environment:
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://naming-server:8761/eureka"}}}}'
-
-  to-do-app:
-    image: justbogdy/to-do-app
-    ports:
-      - "8200:8200"
-    networks:
-      - to-do-app-network
-    depends_on:
-      - mysqldb
-      - naming-server
-    environment:
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://naming-server:8761/eureka"}}}}'
-
-  naming-server:
-    image: justbogdy/naming-server
-    ports:
-      - "8761:8761"
-    networks:
-      - to-do-app-network
-
-
-  api-gateway:
-    image: justbogdy/api-gateway
-    ports:
-      - "8765:8765"
-    networks:
-      - to-do-app-network
-    depends_on:
-      - naming-server
-    environment:
-      SPRING_APPLICATION_JSON: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://naming-server:8761/eureka"}}}}'
-
-
-  mysqldb:
-    image: mysql:8
-    networks:
-      - to-do-app-network
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=to_do_app
-
+    mongodb:
+      image: mongo
+      container_name: mongodb
+      ports:
+        - "27017:27017"
+      volumes:
+        - data:/data
+      environment:
+        - MONGO_INITDB_ROOT_USERNAME=rootuser
+        - MONGO_INITDB_ROOT_PASSWORD=rootpass
+    mongo-express:
+      image: mongo-express
+      container_name: mongo-express
+      restart: always
+      ports:
+        - "8081:8081"
+      environment:
+        - ME_CONFIG_MONGODB_ADMINUSERNAME=rootuser
+        - ME_CONFIG_MONGODB_ADMINPASSWORD=rootpass
+        - ME_CONFIG_MONGODB_SERVER=mongodb
+volumes:
+    data: {}
 networks:
-  to-do-app-network:
+  default:
+    name: mongodb_network

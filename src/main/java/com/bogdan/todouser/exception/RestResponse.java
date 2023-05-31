@@ -1,19 +1,22 @@
-package com.bogdan.todouser.factory;
+package com.bogdan.todouser.exception;
 
 import com.bogdan.todouser.domain.HttpResponse;
+import com.bogdan.todouser.enums.ErrorsEnum;
 import org.json.JSONObject;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class RestResponseFactory {
+public class RestResponse {
+
+    public static final String ERROR_CODE = "Error code";
+    public static final String ERROR_DESCRIPTION = "Error description";
 
     public static ResponseEntity<HttpResponse> createResponse(HttpStatus httpStatus, String message) {
         return response(httpStatus, message);
     }
 
     public static ResponseEntity<String> createSuccessResponse(JSONObject jsonObject) {
-
         return createRestResponse(createResponse(jsonObject), HttpStatus.OK);
     }
 
@@ -37,5 +40,12 @@ public class RestResponseFactory {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
         return new ResponseEntity<>(jsonObject.toString(), headers, httpStatus);
+    }
+
+    public static ResponseEntity<String> createErrorResponse(ErrorsEnum error) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(ERROR_CODE, error.getErrorCode());
+        jsonObject.put(ERROR_DESCRIPTION, error.getErrorDescription());
+        return createRestResponse(createResponse(jsonObject), error.getHttpStatus());
     }
 }

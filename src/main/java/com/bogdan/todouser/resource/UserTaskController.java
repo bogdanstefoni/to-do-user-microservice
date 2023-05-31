@@ -2,7 +2,6 @@ package com.bogdan.todouser.resource;
 
 import com.bogdan.todouser.config.TaskProxy;
 import com.bogdan.todouser.dto.TaskDto;
-import com.bogdan.todouser.dto.UserResponseDto;
 import com.bogdan.todouser.exception.UserNotFoundException;
 import com.bogdan.todouser.service.TaskService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,8 +23,8 @@ public class UserTaskController {
     private TaskService taskService;
 
     @GetMapping("/list/{userId}")
-    public ResponseEntity<UserResponseDto> getTasksByUserId(@PathVariable long userId) throws UserNotFoundException, IOException {
-        UserResponseDto responseDto = taskService.findTasksByUserId(userId);
+    public ResponseEntity<UserDto> getTasksByUserId(@PathVariable long userId) throws UserNotFoundException, IOException {
+        UserDto responseDto = taskService.findTasksByUserId(userId);
 
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
@@ -36,15 +35,15 @@ public class UserTaskController {
     }
 
     @PostMapping("/{userId}/create")
-    public ResponseEntity<UserResponseDto> createTask(@RequestBody TaskDto taskDto, @PathVariable long userId) throws UserNotFoundException, JsonProcessingException {
-        UserResponseDto responseDto = taskService.createTask(taskDto, userId);
+    public ResponseEntity<UserDto> createTask(@RequestBody TaskDto taskDto, @PathVariable long userId) throws UserNotFoundException, JsonProcessingException {
+        UserDto responseDto = taskService.createTask(taskDto, userId);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
 
     }
 
     @PutMapping("/{userId}/update")
-    public ResponseEntity<UserResponseDto> updateTask(@RequestBody TaskDto taskDto, @PathVariable long userId) throws UserNotFoundException {
-        UserResponseDto responseDto = taskService.updateTask(taskDto, userId);
+    public ResponseEntity<UserDto> updateTask(@RequestBody TaskDto taskDto, @PathVariable long userId) throws UserNotFoundException {
+        UserDto responseDto = taskService.updateTask(taskDto, userId);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 

@@ -3,12 +3,12 @@ package com.bogdan.todouser.resource;
 import com.bogdan.todouser.domain.HttpResponse;
 import com.bogdan.todouser.domain.User;
 import com.bogdan.todouser.domain.UserPrincipal;
-import com.bogdan.todouser.exception.EmailExistException;
-import com.bogdan.todouser.exception.EmailNotFoundException;
-import com.bogdan.todouser.exception.ExceptionHandling;
-import com.bogdan.todouser.exception.UsernameExistException;
+import com.bogdan.todouser.dto.UserDto;
+import com.bogdan.todouser.exception.*;
 import com.bogdan.todouser.service.UserService;
 import com.bogdan.todouser.util.JWTTokenProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -25,21 +25,25 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 
 import static com.bogdan.todouser.constant.FileConstant.*;
 import static com.bogdan.todouser.constant.SecurityConstant.JWT_TOKEN_HEADER;
 import static com.bogdan.todouser.enums.ErrorsEnum.USER_DELETED_SUCCESSFULLY;
-import static com.bogdan.todouser.factory.RestResponseFactory.createResponse;
-import static org.springframework.http.HttpStatus.NO_CONTENT;
-import static org.springframework.http.HttpStatus.OK;
+import static com.bogdan.todouser.exception.RestResponse.createResponse;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.IMAGE_JPEG_VALUE;
 
 @RestController
-@RequestMapping(path = {"/", "/users"})
+@RequestMapping(path = {"/"})
+//refactor
 public class UserResource extends ExceptionHandling {
+    public static final String USER_PATH = "/users";
+    public static final String USER_ID_PATH = "/{userId}";
     private final UserService userService;
     private final AuthenticationManager manager;
     private final JWTTokenProvider tokenProvider;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     public UserResource(UserService userService, AuthenticationManager manager, JWTTokenProvider tokenProvider) {
@@ -48,56 +52,44 @@ public class UserResource extends ExceptionHandling {
         this.tokenProvider = tokenProvider;
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody User user) {
-        authenticate(user.getUsername(), user.getPassword());
-        User loginUser = userService.findUserByUsername(user.getUsername());
+    @PostMapping
+    public ResponseEntity login(@RequestBody UserDto userDto) {
+        authenticate(userDto.getUsername(), userDto.getPassword());
+        UserDto loginUser = userService.findUserByUsername(userDto.getUsername());
         UserPrincipal userPrincipal = new UserPrincipal(loginUser);
         HttpHeaders jwtHeader = getJwtHeader(userPrincipal);
+        logger.info("User {} logged in", userDto.getUsername());
 
-        return new ResponseEntity<>(loginUser, jwtHeader, OK);
+        return new ResponseEntity<>(loginUser, jwtHeader, ACCEPTED);
 
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) throws UsernameExistException, EmailExistException {
-        User userRegister = userService.register(user.getFirstName(), user.getLastName(), user.getUsername(), user.getEmail(), user.getPassword());
+    @PostMapping
+    public ResponseEntity register(@RequestBody UserDto user)  {
+        UserDto savedUser = userService.register(user);
 
-        return new ResponseEntity<>(userRegister, OK);
+        return new ResponseEntity<>(savedUser, CREATED);
     }
 
 
-    @PostMapping("/update")
-    public ResponseEntity<User> update(@RequestParam("currentUser") String currentUser,
-                                       @RequestParam("firstName") String firstName,
-                                       @RequestParam("lastName") String lastName,
-                                       @RequestParam("username") String username,
-                                       @RequestParam("password") String password,
-                                       @RequestParam("email") String email,
-                                       @RequestParam("role") String role,
-                                       @RequestParam("isActive") String isActive,
-                                       @RequestParam("isNonLocked") String isNonLocked,
-                                       @RequestParam(value = "profileImage", required = false) MultipartFile profileImage)
-            throws EmailExistException, IOException, UsernameExistException {
+    @PostMapping(USER_ID_PATH)
+    public ResponseEntity<UserDto> update(@PathVariable("userId") Long userId, @RequestBody UserDto userDto) {
+        if(userService.updateUser(userId, userDto).isEmpty()) {
+            throw new UserNotFoundException();
+        }
 
-        User updatedUser = userService.updateUser(currentUser, firstName, lastName, username, password, email, role,
-                Boolean.parseBoolean(isActive), Boolean.parseBoolean(isNonLocked), profileImage);
-
-        return new ResponseEntity<>(updatedUser, OK);
+        return new ResponseEntity<>(userDto, OK);
     }
 
-    @GetMapping("/find/{username}")
-    public ResponseEntity<User> getUser(@PathVariable("username") String username) {
-        User user = userService.findUserByUsername(username);
-
-        return new ResponseEntity<>(user, OK);
+    @GetMapping(USER_ID_PATH)
+    public UserDto getUserById(@PathVariable("userId") Long userId) {
+        return userService.findUserById(userId).orElseThrow(UserNotFoundException::new);
     }
 
-    @GetMapping("/list")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getUsers();
+    @GetMapping(USER_PATH)
+    public List<UserDto> getAllUsers() {
 
-        return new ResponseEntity<>(users, OK);
+        return userService.getUsers();
     }
 
     @GetMapping("/reset-password/{email}")

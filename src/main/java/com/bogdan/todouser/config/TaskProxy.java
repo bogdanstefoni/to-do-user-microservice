@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-//@FeignClient(name = "to-do-task", url = "localhost:8000")
-@FeignClient(name = "to-do-app")
+//@FeignClient(name = "to-do-task", url = "localhost:8200")
+@FeignClient(name = "to-do-app", url = "${TO_DO_APP_SERVICE_HOST:localhost}:8200")
 @Configuration
 public interface TaskProxy {
 

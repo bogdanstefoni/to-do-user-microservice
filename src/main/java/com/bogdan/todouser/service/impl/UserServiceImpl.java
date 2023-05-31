@@ -2,19 +2,17 @@ package com.bogdan.todouser.service.impl;
 
 import com.bogdan.todouser.domain.User;
 import com.bogdan.todouser.domain.UserPrincipal;
+import com.bogdan.todouser.dto.UserDto;
 import com.bogdan.todouser.enums.Role;
-import com.bogdan.todouser.exception.EmailExistException;
-import com.bogdan.todouser.exception.EmailNotFoundException;
-import com.bogdan.todouser.exception.UserNotFoundException;
-import com.bogdan.todouser.exception.UsernameExistException;
+import com.bogdan.todouser.mapper.UserMapper;
 import com.bogdan.todouser.repository.UserRepository;
 import com.bogdan.todouser.service.LoginAttemptService;
 import com.bogdan.todouser.service.UserService;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,15 +29,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.bogdan.todouser.constant.FileConstant.*;
-import static com.bogdan.todouser.enums.ErrorsEnum.*;
+import static com.bogdan.todouser.enums.ErrorsEnum.USER_NOT_FOUND;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 
 @Service
 @Transactional
 @Qualifier("userDetailsService")
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService, UserDetailsService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -47,15 +49,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final LoginAttemptService loginAttemptService;
     private final Environment environment;
+    private final UserMapper userMapper;
 
-    @Autowired
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, LoginAttemptService loginAttemptService,
-                           Environment environment) {
-        this.userRepository = userRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.loginAttemptService = loginAttemptService;
-        this.environment = environment;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -81,108 +76,95 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
 
     @Override
-    public User register(String firstName, String lastName, String username, String email, String password)
-            throws EmailExistException, UsernameExistException {
-        validateNewUsernameAndEmail(EMPTY, username, email);
-        User user = new User();
-        user.setUserId(generateUserId());
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setCreationDate(new Date());
-        user.setPassword(encodePassword(password));
-        user.setActive(true);
-        user.setNotLocked(true);
-        user.setRole(Role.ROLE_USER.name());
-        user.setAuthorities(Role.ROLE_USER.getAuthorities());
-        user.setPort(registerPort());
-        userRepository.save(user);
-//        emailService.sendNewPasswordEmail(firstName, password, email);
-        return user;
+    public UserDto register(UserDto userDto) {
+        return userMapper.userToUserDto(userRepository.save(userMapper.userDtoToUser(userDto)));
     }
 
     @Override
-    public User findUserById(long id) throws UserNotFoundException {
-        return userRepository.findById(id).orElseThrow(() ->
-                new UserNotFoundException("User with id " + id + " not found")
-        );
+    public Optional<UserDto> findUserById(Long id)  {
+        return Optional.ofNullable(userMapper.userToUserDto(
+                userRepository.findById(id).orElse(null)));
     }
 
     @Override
-    public List<User> getUsers() {
-        return userRepository.findAll();
+    public List<UserDto> getUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(userMapper::userToUserDto)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public User findUserByUsername(String username) {
-        return userRepository.findUserByUsername(username);
+    public Optional<UserDto> findUserByUsername(String username) {
+        return Optional.ofNullable(userMapper.userToUserDto(
+                userRepository.findUserByUsername(username)));
     }
 
     @Override
-    public User findUserByEmail(String email) {
-        return userRepository.findUserByEmail(email);
+    public Optional<UserDto> findUserByEmail(String email) {
+        return Optional.ofNullable(userMapper.userToUserDto(
+                userRepository.findUserByEmail(email)));
     }
 
 
     @Override
-    public User updateUser(String currentUsername, String newFirstName, String newLastName, String newUsername, String newPassword, String newEmail, String role, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws EmailExistException, UsernameExistException, IOException {
-        User currentUser = validateNewUsernameAndEmail(currentUsername, newUsername, newEmail);
-        assert currentUser != null;
-        currentUser.setFirstName(newFirstName);
-        currentUser.setLastName(newLastName);
-        currentUser.setCreationDate(new Date());
-        currentUser.setUsername(newUsername);
-        currentUser.setPassword(encodePassword(newPassword));
-        currentUser.setEmail(newEmail);
-        currentUser.setActive(isActive);
-        currentUser.setNotLocked(isNonLocked);
-        currentUser.setRole(getRoleEnumName(role).name());
-        currentUser.setAuthorities(getRoleEnumName(role).getAuthorities());
-        userRepository.save(currentUser);
-        saveProfileImage(currentUser, profileImage);
-        return currentUser;
+    public Optional<UserDto> updateUser(Long userId, UserDto user) {
+        AtomicReference<Optional<UserDto>> atomicReference = new AtomicReference<>();
+
+        userRepository.findById(userId).ifPresentOrElse(foundUser -> {
+            foundUser.setFirstName(user.getFirstName());
+            foundUser.setLastName(user.getLastName());
+            foundUser.setEmail(user.getEmail());
+            foundUser.setUsername(user.getUsername());
+            foundUser.setPassword(user.getPassword());
+            atomicReference.set(Optional.of(userMapper.userToUserDto(userRepository.save(foundUser))));
+        }, () -> atomicReference.set(Optional.empty()));
+
+        return atomicReference.get();
     }
 
     @Override
-    public void deleteUser(long id) {
-        userRepository.deleteById(id);
-    }
-
-    @Override
-    public String resetPassword(String email) throws EmailNotFoundException {
-        User user = userRepository.findUserByEmail(email);
-        if (user == null) {
-            throw new EmailNotFoundException(USER_NOT_FOUND_BY_EMAIL + SPACE + email);
+    public Boolean deleteUser(Long id) {
+        if(userRepository.existsById(id)){
+            userRepository.deleteById(id);
+            return true;
         }
+        return false;
+    }
+
+    @Override
+    public String resetPassword(Long id, String email)  {
+        AtomicReference<Optional<UserDto>> atomicReference = new AtomicReference<>();
+
         String password = generatePassword();
-        user.setPassword(encodePassword(password));
-        userRepository.save(user);
+        userRepository.findById(id).ifPresentOrElse(user -> {
+            user.setPassword(encodePassword(password));
+            atomicReference.set(Optional.of(userMapper.userToUserDto(userRepository.save(user))));
+        }, () -> atomicReference.set(Optional.empty()));
 
         return password;
 //        emailService.sendNewPasswordEmail(user.getFirstName(), password, user.getEmail());
     }
 
     @Override
-    public User updateProfileImage(String username, MultipartFile profileImage) throws EmailExistException, UsernameExistException, IOException {
-        User user = validateNewUsernameAndEmail(username, null, null);
-        saveProfileImage(user, profileImage);
-        return user;
-    }
+    public UserDto updateProfileImage(String username, MultipartFile profileImage) throws IOException {
+        UserDto userDto = userMapper.userToUserDto(userRepository.findUserByUsername(username));
+        boolean isNewUsernameAndPasswordValid = validateNewUsernameAndEmail(username, null, null);
 
-    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException {
-        if (profileImage != null) {
-            Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
+        if (isNewUsernameAndPasswordValid && profileImage != null) {
+            Path userFolder = Paths.get(USER_FOLDER, userDto.getUsername()).toAbsolutePath().normalize();
             if (!Files.exists(userFolder)) {
                 Files.createDirectories(userFolder);
                 logger.info(DIRECTORY_CREATED + userFolder);
             }
-            Files.deleteIfExists(Paths.get(userFolder + user.getUsername() + DOT + JPG_EXTENSION));
-            Files.copy(profileImage.getInputStream(), userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
-            user.setProfileImageUrl(setProfileImageUrl(user.getUsername()));
-            userRepository.save(user);
-            logger.info(FILE_SAVED_IN_FILE_SYSTEM + profileImage.getOriginalFilename());
+
+            Files.deleteIfExists(userFolder.resolve(userDto.getUsername() + DOT + JPG_EXTENSION));
+            Files.copy(profileImage.getInputStream(), userFolder.resolve(userDto.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
+
+            userDto.setProfileImageUrl(setProfileImageUrl(userDto.getUsername()));
+            userRepository.save(userMapper.userDtoToUser(userDto));
         }
+        return userDto;
     }
 
     private String setProfileImageUrl(String username) {
@@ -206,41 +188,36 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return RandomStringUtils.randomAlphanumeric(10);
     }
 
-    private String generateUserId() {
-        return RandomStringUtils.randomNumeric(10);
-    }
-
-    private User validateNewUsernameAndEmail(String currentUsername, String newUsername, String newEmail)
-            throws UsernameExistException, EmailExistException {
-        User userByNewUsername = findUserByUsername(newUsername);
-        User userByNewEmail = findUserByEmail(newEmail);
+    private boolean validateNewUsernameAndEmail(String currentUsername, String newUsername, String newEmail) {
 
         if (isNoneBlank(currentUsername)) {
-            User currentUser = findUserByUsername(currentUsername);
-            if (currentUser == null) {
-                throw new UsernameNotFoundException(currentUsername + " not found");
+            Optional<UserDto> currentUser = findUserByUsername(currentUsername);
+            if (currentUser.isEmpty()) {
+                return false;
+            }
+            if(isUsernameTaken(currentUsername, newUsername)) {
+                return false;
             }
 
-            if (userByNewUsername != null && !currentUser.getId().equals(userByNewUsername.getId())) {
-                throw new UsernameExistException(USER_EXISTS);
-            }
-
-            if (userByNewEmail != null && !currentUser.getId().equals(userByNewEmail.getId())) {
-                throw new EmailExistException(EMAIL_ALREADY_EXISTS);
-            }
-
-            return currentUser;
+            return !isEmailTaken(currentUsername, newEmail);
         } else {
-
-            if (userByNewUsername != null) {
-                throw new UsernameExistException(USER_EXISTS);
+            if (isEmailTaken(newUsername, null)) {
+                return false;
             }
-            if (userByNewEmail != null) {
-                throw new EmailExistException(EMAIL_ALREADY_EXISTS);
-            }
-
-            return null;
+            return !isUsernameTaken(newUsername, null);
         }
+    }
+
+    private boolean isUsernameTaken(String currentUsername, String newUsername){
+
+        Optional<UserDto> userByNewUsername = findUserByUsername(newUsername);
+        return userByNewUsername.isEmpty() || currentUsername.equals(userByNewUsername.get().getUsername());
+    }
+
+    private boolean isEmailTaken(String currentUsername, String newEmail) {
+
+        Optional<UserDto> userByNewEmail = findUserByEmail(newEmail);
+        return userByNewEmail.isEmpty() || currentUsername.equals(userByNewEmail.get().getEmail());
     }
 
 

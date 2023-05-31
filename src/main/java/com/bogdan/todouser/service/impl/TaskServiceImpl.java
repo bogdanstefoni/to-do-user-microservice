@@ -3,7 +3,7 @@ package com.bogdan.todouser.service.impl;
 import com.bogdan.todouser.config.TaskProxy;
 import com.bogdan.todouser.domain.User;
 import com.bogdan.todouser.dto.TaskDto;
-import com.bogdan.todouser.dto.UserResponseDto;
+import com.bogdan.todouser.dto.UserDto;
 import com.bogdan.todouser.exception.UserNotFoundException;
 import com.bogdan.todouser.service.TaskService;
 import com.bogdan.todouser.service.UserService;
@@ -30,26 +30,26 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserResponseDto findTasksByUserId(long userId) throws UserNotFoundException {
-        User user = userService.findUserById(userId);
-        UserResponseDto userResponseDto = mapToUserResponseDto(user);
+    public UserDto findTasksByUserId(long userId) throws UserNotFoundException {
+        UserDto user = userService.findUserById(userId);
+        UserDto UserDto = mapToUserDto(user);
         if (user.isNotLocked()) {
             List<TaskDto> tasksResponse = proxy.findTasksByUserId(userId);
 
-            userResponseDto.setTasks(tasksResponse);
+            UserDto.setTasks(tasksResponse);
 
         }
 
-        return userResponseDto;
+        return UserDto;
 
 
     }
 
     @Override
-    public UserResponseDto createTask(TaskDto taskDto, long id) throws UserNotFoundException {
-        User user = userService.findUserById(id);
+    public UserDto createTask(TaskDto taskDto, long id) throws UserNotFoundException {
+        UserDto user = userService.findUserById(id);
 
-        UserResponseDto responseDto = mapToUserResponseDto(user);
+        UserDto responseDto = mapToUserDto(user);
         taskDto.setUserId(id);
         if (user.isNotLocked()) {
 
@@ -76,10 +76,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserResponseDto updateTask(TaskDto taskDto, long id) throws UserNotFoundException {
-        User user = userService.findUserById(id);
+    public UserDto updateTask(TaskDto taskDto, long id) throws UserNotFoundException {
+        UserDto user = userService.findUserById(id);
 
-        UserResponseDto responseDto = mapToUserResponseDto(user);
+        UserDto responseDto = mapToUserDto(user);
 
         if (user.isNotLocked()) {
 
@@ -99,10 +99,10 @@ public class TaskServiceImpl implements TaskService {
         return responseDto;
     }
 
-    private UserResponseDto mapToUserResponseDto(User user) {
+    private UserDto mapToUserDto(UserDto user) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setSkipNullEnabled(true).setMatchingStrategy(MatchingStrategies.STRICT);
-        return mapper.map(user, UserResponseDto.class);
+        return mapper.map(user, UserDto.class);
     }
 
 }
