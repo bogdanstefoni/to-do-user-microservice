@@ -16,6 +16,9 @@ public interface TaskProxy {
     @GetMapping("/tasks/{taskName}")
     ResponseEntity<TaskDto> findTaskByName(@PathVariable String taskName);
 
+    @GetMapping("/{id}")
+    ResponseEntity<TaskDto> findById(@PathVariable Long id);
+
     @PostMapping("/tasks/{userId}/create")
     ResponseEntity<TaskDto> createTask(@RequestBody TaskDto taskDto, @PathVariable Long userId);
 
@@ -27,5 +30,8 @@ public interface TaskProxy {
 
     @GetMapping("/tasks/list/{userId}")
     List<TaskDto> findTasksByUserId(@PathVariable Long userId);
+
+    @DeleteMapping("/task/{id}")
+    void deleteTask(@PathVariable Long id);
 
 }

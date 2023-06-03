@@ -1,5 +1,6 @@
 package com.bogdan.todouser.domain;
 
+import com.bogdan.todouser.dto.UserDto;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,7 +12,7 @@ import static java.util.Arrays.stream;
 
 public class UserPrincipal implements UserDetails {
 
-    private User user;
+    private final User user;
 
     public UserPrincipal(User user) {
         this.user = user;

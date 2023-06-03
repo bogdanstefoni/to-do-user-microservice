@@ -2,17 +2,17 @@ package com.bogdan.todouser.service;
 
 import com.bogdan.todouser.dto.TaskDto;
 import com.bogdan.todouser.dto.UserDto;
-import com.bogdan.todouser.exception.UserNotFoundException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
-import java.io.IOException;
+import java.util.Optional;
 
 
 public interface TaskService {
 
-    UserDto findTasksByUserId(long userId) throws UserNotFoundException, IOException;
+    Optional<UserDto> findTasksByUserId(Long userId);
 
-    UserDto createTask(TaskDto taskDto, long id) throws UserNotFoundException, JsonProcessingException;
+    UserDto createTask(TaskDto taskDto, Long id);
 
-    UserDto updateTask(TaskDto taskDto, long userId) throws UserNotFoundException;
+    UserDto updateTask(TaskDto taskDto, Long userId);
+
+    Boolean deleteTask(Long id);
 }

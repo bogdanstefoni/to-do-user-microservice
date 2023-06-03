@@ -1,10 +1,11 @@
 package com.bogdan.todouser.exception;
 
+
 import com.bogdan.todouser.enums.ErrorsEnum;
-import com.bogdan.todouser.exception.CustomException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,4 +30,6 @@ public class ExceptionHandling extends ResponseEntityExceptionHandler {
 
         return RestResponse.createErrorResponse(error);
     }
+
+
 }

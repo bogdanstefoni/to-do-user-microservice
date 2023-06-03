@@ -1,10 +1,12 @@
 package com.bogdan.todouser.resource;
 
 import com.bogdan.todouser.domain.HttpResponse;
-import com.bogdan.todouser.domain.User;
 import com.bogdan.todouser.domain.UserPrincipal;
 import com.bogdan.todouser.dto.UserDto;
-import com.bogdan.todouser.exception.*;
+import com.bogdan.todouser.enums.ErrorsEnum;
+import com.bogdan.todouser.exception.CustomException;
+import com.bogdan.todouser.exception.ExceptionHandling;
+import com.bogdan.todouser.mapper.UserMapper;
 import com.bogdan.todouser.service.UserService;
 import com.bogdan.todouser.util.JWTTokenProvider;
 import org.slf4j.Logger;
@@ -35,73 +37,84 @@ import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.IMAGE_JPEG_VALUE;
 
 @RestController
-@RequestMapping(path = {"/"})
 //refactor
 public class UserResource extends ExceptionHandling {
     public static final String USER_PATH = "/users";
-    public static final String USER_ID_PATH = "/{userId}";
+    public static final String USER_ID_PATH = USER_PATH + "/{userId}";
+    public static final String LOGIN = USER_PATH + "/login";
+    public static final String REGISTER = USER_PATH + "/register";
+    public static final String IMAGE_PROFILE_USERNAME = USER_PATH + "/image/profile/{username}";
+    public static final String DELETE_ID = USER_PATH + "/delete/{id}";
+    public static final String RESET_PASSWORD = USER_PATH + "/reset-password/";
     private final UserService userService;
     private final AuthenticationManager manager;
     private final JWTTokenProvider tokenProvider;
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final UserMapper userMapper;
 
     @Autowired
-    public UserResource(UserService userService, AuthenticationManager manager, JWTTokenProvider tokenProvider) {
+    public UserResource(UserService userService, AuthenticationManager manager
+            , JWTTokenProvider tokenProvider, UserMapper userMapper) {
         this.userService = userService;
         this.manager = manager;
         this.tokenProvider = tokenProvider;
+        this.userMapper = userMapper;
     }
 
-    @PostMapping
-    public ResponseEntity login(@RequestBody UserDto userDto) {
+    @PostMapping(LOGIN)
+    public ResponseEntity<UserPrincipal> login(@RequestBody UserDto userDto) {
         authenticate(userDto.getUsername(), userDto.getPassword());
-        UserDto loginUser = userService.findUserByUsername(userDto.getUsername());
-        UserPrincipal userPrincipal = new UserPrincipal(loginUser);
+        UserDto loginUser = userService.findUserByUsername(userDto.getUsername())
+                .orElseThrow(() -> new CustomException(ErrorsEnum.USER_NOT_FOUND));
+        UserPrincipal userPrincipal = new UserPrincipal(userMapper.userDtoToUser(loginUser));
         HttpHeaders jwtHeader = getJwtHeader(userPrincipal);
         logger.info("User {} logged in", userDto.getUsername());
 
-        return new ResponseEntity<>(loginUser, jwtHeader, ACCEPTED);
+        return new ResponseEntity<>(userPrincipal, jwtHeader, ACCEPTED);
 
     }
 
-    @PostMapping
-    public ResponseEntity register(@RequestBody UserDto user)  {
-        UserDto savedUser = userService.register(user);
+    @PostMapping(REGISTER)
+    public ResponseEntity<UserDto> register(@RequestBody UserDto userDto) {
 
-        return new ResponseEntity<>(savedUser, CREATED);
+            UserDto savedUser = userService.register(userDto);
+            return new ResponseEntity<>(savedUser, CREATED);
+
+
     }
 
 
     @PostMapping(USER_ID_PATH)
     public ResponseEntity<UserDto> update(@PathVariable("userId") Long userId, @RequestBody UserDto userDto) {
-        if(userService.updateUser(userId, userDto).isEmpty()) {
-            throw new UserNotFoundException();
-        }
+        Optional<UserDto> updateUser = userService.updateUser(userId, userDto);
 
-        return new ResponseEntity<>(userDto, OK);
+
+        return new ResponseEntity<>(updateUser.orElse(null), OK);
     }
 
     @GetMapping(USER_ID_PATH)
     public UserDto getUserById(@PathVariable("userId") Long userId) {
-        return userService.findUserById(userId).orElseThrow(UserNotFoundException::new);
+        Optional<UserDto> userById = userService.findUserById(userId);
+        return userById.orElse(null);
     }
 
     @GetMapping(USER_PATH)
     public List<UserDto> getAllUsers() {
-
         return userService.getUsers();
     }
 
-    @GetMapping("/reset-password/{email}")
-    public ResponseEntity<HttpResponse> resetPassword(@PathVariable("email") String email) throws EmailNotFoundException {
+    @GetMapping(RESET_PASSWORD + USER_ID_PATH)
+    public ResponseEntity<HttpResponse> resetPassword(@PathVariable("userId") Long userId, String email) {
 
-        User user = userService.findUserByEmail(email);
-        user.setPassword(userService.resetPassword(email));
+        UserDto userDto = userService.findUserByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorsEnum.USER_NOT_FOUND_BY_EMAIL));
+
+        String newPassword = userService.resetPassword(userId, email);
 //        return response(OK, EMAIL_SENT + email);
-        return createResponse(OK, "New password " + user.getPassword());
+        return createResponse(OK, "New password " + newPassword);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping(DELETE_ID)
     @PreAuthorize("hasAnyAuthority('user:delete')")
     public ResponseEntity<HttpResponse> deleteUser(@PathVariable("id") long id) {
         userService.deleteUser(id);
@@ -110,10 +123,11 @@ public class UserResource extends ExceptionHandling {
     }
 
     @PostMapping("/updateProfileImage")
-    public ResponseEntity<User> updateProfileImage(@RequestParam("username") String username,
-                                                   @RequestParam(value = "profileImage") MultipartFile profileImage) throws EmailExistException, IOException, UsernameExistException {
+    public ResponseEntity<UserDto> updateProfileImage(@RequestParam("username") String username,
+                                                      @RequestParam(value = "profileImage") MultipartFile profileImage)
+            throws IOException {
 
-        User user = userService.updateProfileImage(username, profileImage);
+        UserDto user = userService.updateProfileImage(username, profileImage);
 
         return new ResponseEntity<>(user, OK);
     }
@@ -124,30 +138,26 @@ public class UserResource extends ExceptionHandling {
         return Files.readAllBytes(Paths.get(USER_FOLDER + username + FORWARD_SLASH + fileName));
     }
 
-    @GetMapping(path = "/image/profile/{username}", produces = IMAGE_JPEG_VALUE)
+    @GetMapping(path = IMAGE_PROFILE_USERNAME, produces = IMAGE_JPEG_VALUE)
     public byte[] getTemporaryProfileImage(@PathVariable("username") String username) throws IOException {
 
-        URL url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        if (userService.findUserByUsername(username).isEmpty()) {
+            throw new CustomException(ErrorsEnum.USER_NOT_FOUND);
+        } else {
+            URL url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-        try (InputStream inputStream = url.openStream()) {
-            int bytesRead;
-            byte[] chunk = new byte[1024];
+            try (InputStream inputStream = url.openStream()) {
+                int bytesRead;
+                byte[] chunk = new byte[1024];
 
-            while ((bytesRead = inputStream.read(chunk)) > 0) {
-                outputStream.write(chunk, 0, bytesRead);
+                while ((bytesRead = inputStream.read(chunk)) > 0) {
+                    outputStream.write(chunk, 0, bytesRead);
+                }
             }
+            return outputStream.toByteArray();
         }
-
-        return outputStream.toByteArray();
     }
-
-//    private ResponseEntity<HttpResponse> response(HttpStatus httpStatus, String message) {
-//        HttpResponse body = new HttpResponse(httpStatus.value(), httpStatus,
-//                httpStatus.getReasonPhrase().toUpperCase(), message);
-//
-//        return new ResponseEntity<>(body, httpStatus);
-//    }
 
     private HttpHeaders getJwtHeader(UserPrincipal userPrincipal) {
         HttpHeaders httpHeaders = new HttpHeaders();

@@ -1,20 +1,17 @@
 package com.bogdan.todouser.service.impl;
 
 import com.bogdan.todouser.config.TaskProxy;
-import com.bogdan.todouser.domain.User;
 import com.bogdan.todouser.dto.TaskDto;
 import com.bogdan.todouser.dto.UserDto;
-import com.bogdan.todouser.exception.UserNotFoundException;
 import com.bogdan.todouser.service.TaskService;
 import com.bogdan.todouser.service.UserService;
-import org.modelmapper.ModelMapper;
-import org.modelmapper.convention.MatchingStrategies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TaskServiceImpl implements TaskService {
@@ -30,28 +27,23 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserDto findTasksByUserId(long userId) throws UserNotFoundException {
-        UserDto user = userService.findUserById(userId);
-        UserDto UserDto = mapToUserDto(user);
-        if (user.isNotLocked()) {
+    public Optional<UserDto> findTasksByUserId(Long userId) {
+        Optional<UserDto> user = userService.findUserById(userId);
+        if (user.get().isNotLocked()) {
             List<TaskDto> tasksResponse = proxy.findTasksByUserId(userId);
 
-            UserDto.setTasks(tasksResponse);
+            user.get().setTasks(tasksResponse);
 
         }
-
-        return UserDto;
-
-
+        return user;
     }
 
     @Override
-    public UserDto createTask(TaskDto taskDto, long id) throws UserNotFoundException {
-        UserDto user = userService.findUserById(id);
-
-        UserDto responseDto = mapToUserDto(user);
+    public UserDto createTask(TaskDto taskDto, Long id) {
+        Optional<UserDto> user = userService.findUserById(id);
+        UserDto userDto = user.get();
         taskDto.setUserId(id);
-        if (user.isNotLocked()) {
+        if (userDto.isNotLocked()) {
 
             List<TaskDto> existingTasks = proxy.findTasksByUserId(id);
 
@@ -64,45 +56,45 @@ public class TaskServiceImpl implements TaskService {
 
             List<TaskDto> taskDtos = new ArrayList<>();
             taskDtos.add(taskDto);
-            responseDto.setTasks(taskDtos);
+            userDto.setTasks(taskDtos);
 
             proxy.createTask(taskDto, id);
-            logger.info("Task created: {}", responseDto.getTasks());
+            logger.info("Task created: {}", userDto.getTasks());
 
 
         }
-        return responseDto;
+        return userDto;
 
     }
 
     @Override
-    public UserDto updateTask(TaskDto taskDto, long id) throws UserNotFoundException {
-        UserDto user = userService.findUserById(id);
+    public UserDto updateTask(TaskDto taskDto, Long id) {
+        Optional<UserDto> user = userService.findUserById(id);
 
-        UserDto responseDto = mapToUserDto(user);
-
-        if (user.isNotLocked()) {
-
+        UserDto userDto = user.get();
+        if (userDto.isNotLocked()) {
             List<TaskDto> taskDtos = proxy.findTasksByUserId(id);
             taskDtos.stream().filter(t -> t.getTitle().equals(taskDto.getTitle()))
-                            .forEach(t -> {
-                                t.setTitle(taskDto.getTitle());
-                                t.setTaskDescription(taskDto.getTaskDescription());
-                            });
+                    .forEach(t -> {
+                        t.setTitle(taskDto.getTitle());
+                        t.setTaskDescription(taskDto.getTaskDescription());
+                    });
 
-            responseDto.setTasks(taskDtos);
+            userDto.setTasks(taskDtos);
 
             proxy.updateTask(taskDto, id);
 
         }
 
-        return responseDto;
+        return userDto;
     }
 
-    private UserDto mapToUserDto(UserDto user) {
-        ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration().setSkipNullEnabled(true).setMatchingStrategy(MatchingStrategies.STRICT);
-        return mapper.map(user, UserDto.class);
+    @Override
+    public Boolean deleteTask(Long id) {
+        if (proxy.findById(id) != null) {
+            proxy.deleteTask(id);
+            return true;
+        }
+        return false;
     }
-
 }

@@ -54,11 +54,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.modelmapper</groupId>-->
-<!--            <artifactId>modelmapper</artifactId>-->
-<!--            <version>3.1.1</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.modelmapper</groupId>-->
+        <!--            <artifactId>modelmapper</artifactId>-->
+        <!--            <version>3.1.1</version>-->
+        <!--        </dependency>-->
 
         <!-- https://mvnrepository.com/artifact/javax.validation/validation-api -->
         <dependency>
@@ -87,10 +87,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <dependency>
-        	<groupId>org.springframework.cloud</groupId>
-        	<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.cloud</groupId>-->
+<!--            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
