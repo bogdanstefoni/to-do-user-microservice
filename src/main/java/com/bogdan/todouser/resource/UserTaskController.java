@@ -3,7 +3,8 @@ package com.bogdan.todouser.resource;
 import com.bogdan.todouser.config.TaskProxy;
 import com.bogdan.todouser.dto.TaskDto;
 import com.bogdan.todouser.dto.UserDto;
-import com.bogdan.todouser.exception.TaskNotFoundException;
+import com.bogdan.todouser.enums.ErrorsEnum;
+import com.bogdan.todouser.exception.CustomException;
 import com.bogdan.todouser.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -54,7 +55,7 @@ public class UserTaskController {
     @DeleteMapping(DELETE_TASK_TASK_ID)
     public ResponseEntity deleteTask(@PathVariable("taskId") Long taskId) {
         if(!taskService.deleteTask(taskId)) {
-            throw new TaskNotFoundException();
+            throw new CustomException(ErrorsEnum.GENERAL_ERROR);
         }
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);

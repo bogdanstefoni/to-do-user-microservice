@@ -22,7 +22,5 @@ public class UserDto {
     private String role;
     private boolean isActive;
     private boolean isNotLocked;
-    private Date lastLoginDate;
-    private Date lastLoginDateDisplay;
-    private List tasks;
+    private List<TaskDto> tasks;
 }

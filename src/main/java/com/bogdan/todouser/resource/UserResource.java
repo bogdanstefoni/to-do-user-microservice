@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -46,6 +48,7 @@ public class UserResource extends ExceptionHandling {
     public static final String IMAGE_PROFILE_USERNAME = USER_PATH + "/image/profile/{username}";
     public static final String DELETE_ID = USER_PATH + "/delete/{id}";
     public static final String RESET_PASSWORD = USER_PATH + "/reset-password/";
+    public static final String UPDATE_PROFILE_IMAGE = USER_PATH + "/updateProfileImage";
     private final UserService userService;
     private final AuthenticationManager manager;
     private final JWTTokenProvider tokenProvider;
@@ -77,8 +80,8 @@ public class UserResource extends ExceptionHandling {
     @PostMapping(REGISTER)
     public ResponseEntity<UserDto> register(@RequestBody UserDto userDto) {
 
-            UserDto savedUser = userService.register(userDto);
-            return new ResponseEntity<>(savedUser, CREATED);
+        UserDto savedUser = userService.register(userDto);
+        return new ResponseEntity<>(savedUser, CREATED);
 
 
     }
@@ -120,9 +123,10 @@ public class UserResource extends ExceptionHandling {
         userService.deleteUser(id);
 
         return createResponse(NO_CONTENT, String.valueOf(USER_DELETED_SUCCESSFULLY));
+
     }
 
-    @PostMapping("/updateProfileImage")
+    @PostMapping(UPDATE_PROFILE_IMAGE)
     public ResponseEntity<UserDto> updateProfileImage(@RequestParam("username") String username,
                                                       @RequestParam(value = "profileImage") MultipartFile profileImage)
             throws IOException {
@@ -167,6 +171,11 @@ public class UserResource extends ExceptionHandling {
     }
 
     private void authenticate(String username, String password) {
-        manager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+        try {
+            manager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+        } catch (BadCredentialsException e) {
+            throw new CustomException(ErrorsEnum.LOGIN_WRONG_CREDENTIALS);
+        }
+
     }
 }

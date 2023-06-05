@@ -93,6 +93,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         user.setPassword(encodePassword(userDto.getPassword()));
         user.setActive(true);
         user.setNotLocked(true);
+        if (!user.isNotLocked()) {
+            throw new CustomException(ErrorsEnum.USER_IS_LOCKED);
+        }
         user.setRole(Role.ROLE_USER.name());
         user.setAuthorities(Role.ROLE_USER.getAuthorities());
 
@@ -115,7 +118,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     public Optional<UserDto> findUserById(Long id) {
         return Optional.ofNullable(userMapper.userToUserDto(
-                userRepository.findById(id).orElse(null)));
+                userRepository.findById(id).orElseThrow(() -> new CustomException(USER_NOT_FOUND))));
     }
 
     @Override

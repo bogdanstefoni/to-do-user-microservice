@@ -3,6 +3,8 @@ package com.bogdan.todouser.service.impl;
 import com.bogdan.todouser.config.TaskProxy;
 import com.bogdan.todouser.dto.TaskDto;
 import com.bogdan.todouser.dto.UserDto;
+import com.bogdan.todouser.enums.ErrorsEnum;
+import com.bogdan.todouser.exception.CustomException;
 import com.bogdan.todouser.service.TaskService;
 import com.bogdan.todouser.service.UserService;
 import org.slf4j.Logger;
@@ -29,27 +31,27 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Optional<UserDto> findTasksByUserId(Long userId) {
         Optional<UserDto> user = userService.findUserById(userId);
-        if (user.get().isNotLocked()) {
+
             List<TaskDto> tasksResponse = proxy.findTasksByUserId(userId);
 
             user.get().setTasks(tasksResponse);
 
-        }
+
         return user;
     }
 
     @Override
     public UserDto createTask(TaskDto taskDto, Long id) {
         Optional<UserDto> user = userService.findUserById(id);
-        UserDto userDto = user.get();
+        UserDto userDto = user.orElseThrow(() -> new CustomException(ErrorsEnum.USER_NOT_FOUND));
         taskDto.setUserId(id);
-        if (userDto.isNotLocked()) {
+
 
             List<TaskDto> existingTasks = proxy.findTasksByUserId(id);
 
             existingTasks.forEach(t -> {
                 if (t.getTitle().equals(taskDto.getTitle())) {
-                    throw new RuntimeException("Task " + t.getTitle() + " already exists. Please create a new one");
+                    throw new CustomException(ErrorsEnum.TASK_EXISTS);
                 }
             });
 
@@ -62,7 +64,7 @@ public class TaskServiceImpl implements TaskService {
             logger.info("Task created: {}", userDto.getTasks());
 
 
-        }
+
         return userDto;
 
     }
